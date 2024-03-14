@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
 
 namespace AuthorizationServer
 {
@@ -26,8 +27,27 @@ namespace AuthorizationServer
                 options.UseOpenIddict();
             });
 
+            services.AddTransient<AuthService>();
+            services.AddTransient<ClientsSeeder>();
+
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.WithOrigins("https://localhost:7002")
+                        .AllowAnyHeader();
+
+                    policy.WithOrigins("http://localhost:3000")
+                        .AllowAnyHeader();
+                });
+            });
+
+
             services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+                .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, option =>
+                {
+                    option.LoginPath = "/Authenticate";
+                });
 
             services.AddOpenIddict()
                 .AddCore(options =>
@@ -52,6 +72,9 @@ namespace AuthorizationServer
                         ;
 
                     options.AllowAuthorizationCodeFlow();
+
+                    options.AddEncryptionKey(new SymmetricSecurityKey(
+                        Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
 
                     //options
                     //    // 產生開發用的加密金鑰，production 建議用存在本機的 X.509 certificates
@@ -95,13 +118,14 @@ namespace AuthorizationServer
             {
                 var seeder = scope.ServiceProvider.GetRequiredService<ClientsSeeder>();
                 seeder.AddClients().GetAwaiter().GetResult();
-                //seeder.AddScopes().GetAwaiter().GetResult();
+                seeder.AddScopes().GetAwaiter().GetResult();
             }
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();
+            app.UseCors();
 
           
             app.UseAuthentication();

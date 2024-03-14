@@ -201,7 +201,7 @@ namespace AuthorizationServer.Controllers
             #endregion
 
             var consentClaim = result.Principal?.GetClaim(Consts.ConsentNaming);
-            if (consentClaim != Consts.ConsentNaming)
+            if (consentClaim != Consts.GrantAccessValue)
             {
                 var returnUrl = HttpUtility.UrlEncode(_authService.BuildRedirectUrl(HttpContext.Request, parameters));
                 var consentRedirectUrl = $"/Consent?returnUrl={returnUrl}";
@@ -238,7 +238,7 @@ namespace AuthorizationServer.Controllers
 
             var authorization = authorizations.LastOrDefault();
 
-            authorization ??=  _authorizationManager.CreateAsync(
+            authorization ??= await _authorizationManager.CreateAsync(
                 identity: identity,
                 subject: userId,
                 client: await _applicationManager.GetIdAsync(application),

@@ -13,6 +13,29 @@ namespace AuthorizationServer
             _serviceProvider = serviceProvider;
         }
 
+        public async Task AddScopes()
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+
+            var apiScope = await manager.FindByNameAsync("api1");
+
+            if (apiScope != null)
+            {
+                await manager.DeleteAsync(apiScope);
+            }
+
+            await manager.CreateAsync(new OpenIddictScopeDescriptor
+            {
+                DisplayName = "Api scope",
+                Name = "api1",
+                Resources =
+                {
+                    "resource_server_1"
+                }
+            });
+        }
+
         public async Task AddClients()
         {
             await using var scope = _serviceProvider.CreateAsyncScope();
